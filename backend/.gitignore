@@ -1,7 +1,21 @@
+# --- secrets & dependencies: never commit ---
 node_modules/
 .env
+.env.*
+!.env.example
+
+# --- logs / OS noise ---
 npm-debug.log
 *.log
 .DS_Store
 
-*.sql
+# --- database backups / dumps (may contain real data) — never commit ---
+*.dump.sql
+backup*.sql
+exampro_backup*.sql
+
+# --- the schema and migrations MUST be tracked ---
+# (These lines also win over a broader "*.sql" rule in a parent folder's .gitignore.)
+!database/schema.sql
+!database/migrations/
+!database/migrations/*.sql

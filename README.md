@@ -325,3 +325,56 @@ To see rate limiting, send 6 wrong logins for one email (the 6th returns 429) �
   and students cannot be suspended yet.
 * Self-service "forgot password" and admin management of staff/student accounts are not part of Phase 2.
 * `npm audit` warnings from Phase 1 are untouched; dependency upgrades should be done separately and tested.
+
+---
+
+# Phase 3A — Groundwork (migrations, tests, safer startup)
+
+No new features: this makes the project safe to build Phase 3B/3C on.
+
+## Commands (Windows PowerShell, from `backend/`)
+
+```powershell
+npm install                  # no new packages in 3A; only needed if node_modules is missing
+npm run migrate:status       # read-only: shows what is applied / pending
+npm run migrate              # applies pending migrations (001 is "adopted", not re-run)
+npm test                     # runs every automated test
+npm run dev                  # start the server
+```
+
+## Migrations
+
+* Files live in `database/migrations/` (see the README there). `scripts/migrate.js` records what has run in a
+  table called `schema_migrations` (created by the runner itself).
+* `001_phase2_auth.sql` was applied by hand earlier. If the live database already has its changes, the runner
+  records it as *adopted* and does **not** run it again. If it does not, the runner applies it.
+* An applied migration that is later edited makes the runner stop. Add a new numbered file instead.
+* Fresh install: run `database/schema.sql`, then `npm run migrate`.
+
+## Database time-zone policy
+
+Every MySQL connection is switched to one fixed offset, `DB_TIME_ZONE` (default `+05:30`). So `NOW()`,
+TIMESTAMP columns, and DATETIME columns written with `NOW()` all agree. Exam slot dates/times will be wall-clock
+times in this zone and compared with `NOW()` inside SQL, never with JavaScript dates. Startup checks the zone
+really is applied (and refuses to start if it is not), and warns if the MySQL server's own default zone differs.
+
+## Server behaviour
+
+* Ctrl+C / SIGTERM: stops accepting requests, lets running ones finish, closes the MySQL pool, exits (forced after 10 s).
+* An unhandled promise rejection or uncaught exception is logged and the process exits with code 1 (after the same clean shutdown).
+* Logging: `morgan('dev')` in development, `combined` in production, none during tests.
+* The frontend folder is found relative to the code, not the folder you start the server from.
+
+## Tests
+
+`npm test` uses Node's built-in test runner (no extra packages).
+
+* `test/auth.test.js`, `test/rbac.test.js`, `test/ratelimit.test.js` — the real Express app over real HTTP, with the
+  database and e-mail replaced by in-memory fakes (`test/support/harness.js`). They never touch MySQL or your data.
+  They do **not** exercise the SQL in `src/models/*`; running the server against your database covers that.
+* `test/migrate.test.js`, `test/timezone.test.js` — unit tests of the migration runner and the time-zone parser.
+
+## Git
+
+`.gitignore` ignores `.env*` (except `.env.example`), `node_modules/`, logs, and database *backups*
+(`*.dump.sql`, `backup*.sql`, `exampro_backup*.sql`). `database/schema.sql` and `database/migrations/*.sql` are tracked.

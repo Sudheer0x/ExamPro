@@ -5,6 +5,7 @@
 // separate makes the app easy to import into automated tests later
 // without actually opening a network port.
 
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -48,10 +49,14 @@ app.use(
 app.use(express.json({ limit: '10kb' })); // parse application/json request bodies (small limit: auth payloads are tiny)
 app.use(express.urlencoded({ extended: true })); // parse HTML form submissions
 app.use(cookieParser());
-app.use(morgan('dev'));                   // log each request to the console
+// Request logging: readable colour output while developing, standard Apache-style lines in production,
+// and nothing at all during automated tests.
+if (config.isProd) app.use(morgan('combined'));
+else if (!config.isTest) app.use(morgan('dev'));
 
 // ---------- Static frontend (served for convenience during development) ----------
-app.use(express.static('../frontend'));
+// Built from __dirname so it works no matter which folder the server is started from.
+app.use(express.static(path.join(__dirname, '..', '..', 'frontend')));
 
 // ---------- Health check ----------
 // Simple route to confirm the server (and, once added, the database) is up.
