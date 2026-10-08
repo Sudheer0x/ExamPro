@@ -378,3 +378,97 @@ really is applied (and refuses to start if it is not), and warns if the MySQL se
 
 `.gitignore` ignores `.env*` (except `.env.example`), `node_modules/`, logs, and database *backups*
 (`*.dump.sql`, `backup*.sql`, `exampro_backup*.sql`). `database/schema.sql` and `database/migrations/*.sql` are tracked.
+
+---
+
+# Phase 3B — Exam setup (admin API)
+
+Backend only. Admins create examinations, exam centers, the PCs at each center, and exam slots. Students
+get no new endpoints here (Phase 3C adds browsing and registration).
+
+## Apply it (from `backend/`, Windows PowerShell)
+
+```powershell
+npm run migrate:status      # shows 002_phase3b_exam_setup.sql as PENDING
+npm run migrate             # applies migration 002 to exampro_db
+npm test                    # automated tests (no database needed)
+npm run dev
+```
+
+Migration 002 adds `examinations.fee`, a unique key on slots, and six CHECK constraints. It is safe to run
+twice and never drops or deletes anything. Fresh installs get the same from `schema.sql`.
+
+## Real-database tests (optional but recommended)
+
+```powershell
+# one-time: add  TEST_DB_NAME=exampro_test  to .env   (the name MUST end in _test)
+npm run test:db
+```
+
+This **drops and rebuilds** the database named in `TEST_DB_NAME`, loads `schema.sql`, applies the migrations, and
+tests the real SQL, constraints, the migration upgrade path, the time-zone policy and simultaneous requests.
+It refuses to run unless the name ends in `_test` and differs from `DB_NAME`, and it only starts through this
+command. Your real database is never touched.
+
+## Rules the API enforces
+
+* **PCs.** The `computers` table is the source of truth; a PC works unless it is in `maintenance`. The counter
+  columns on `exam_centers` are kept in step automatically. Bulk creation is all-or-nothing and continues the
+  numbering (`PC-001 ... PC-060`, then `PC-061`).
+* **Slot capacity.** All slots at a center share its PCs, so the seats of slots that overlap in time (even for
+  different exams) can never add up to more than the working PCs. Slots that merely touch do not overlap.
+  A PC cannot be taken out of service if that would leave upcoming slots short.
+* **Slot rules.** Must start in the future; at least as long as the exam; one slot per exam + center + date +
+  start time; only while the exam is draft, open or closed. Slots **may be created before registration closes**,
+  including while registration is open (students choose a slot while registering); there is no rule tying a slot to
+  the registration end date, and registration can be extended past a slot's date.
+* **Exam status.** `draft -> registration_open <-> registration_closed -> scheduled -> completed`
+  (and `registration_open -> draft` while nobody has registered). Opening needs at least one slot and an end date
+  in the future. Completing needs every slot to have finished. Scheduled/completed exams are read-only.
+* **Deleting.** A center with slots is deactivated, not deleted. A slot with candidates, or the last slot of an
+  open exam, cannot be deleted. Capacity cannot drop below the seats already booked.
+* **Times** are business time (`DB_TIME_ZONE`, default +05:30): `YYYY-MM-DD`, `HH:MM[:SS]`, `YYYY-MM-DD HH:MM:SS`.
+  "Now" always comes from MySQL's clock.
+* **Security.** Every route sits behind `authenticate` + `authorizeRoles('ADMIN')`; students, invigilators and
+  teachers get 403, no token gets 401. Unknown JSON fields are rejected (no mass-assignment, e.g. `status` can only
+  change through the status endpoint). Writes are rate-limited per admin. Locks are always taken exam -> center -> slot.
+
+## Endpoints (all ADMIN only, under `/api/admin`)
+
+| Method + URL | Body | Purpose |
+|---|---|---|
+| POST `/examinations` | `exam_name`, `registration_start_date`, `registration_end_date`, `exam_duration_minutes`; optional `description`, `instructions`, `fee` | create (status `draft`) |
+| GET `/examinations?page&limit&status&q` | | list with slot/registration counts |
+| GET `/examinations/:id` | | one exam + slot summary |
+| PATCH `/examinations/:id` | any of the create fields | edit |
+| PATCH `/examinations/:id/status` | `{status}` | publish / close / reopen / schedule / complete |
+| POST `/examinations/:id/slots` | `center_id`, `exam_date`, `slot_start_time`, `slot_end_time`, `capacity` | create a slot |
+| GET `/examinations/:id/slots?center_id&date` | | list slots with `booked_count`, `seats_left` |
+| PATCH `/slots/:id` | `{capacity}` | change capacity |
+| DELETE `/slots/:id` | | delete an unused slot |
+| POST `/centers` | `center_name`, `city`, `state`; optional `address` | create |
+| GET `/centers?page&limit&city&state&is_active&q` | | list with PC counts |
+| GET `/centers/:id` | | one center + upcoming slot count |
+| PATCH `/centers/:id` | `center_name`, `address`, `city`, `state`, `is_active` | edit / deactivate |
+| DELETE `/centers/:id` | | delete a center with no slots |
+| POST `/centers/:id/computers` | `count`; optional `prefix`, `start_number` | bulk-create PCs |
+| GET `/centers/:id/computers?status&page&limit` | | list PCs |
+| PATCH `/centers/:id/computers/:pcId` | `{status: available \| maintenance}` | service status |
+| DELETE `/centers/:id/computers/:pcId` | | delete an unused PC |
+
+Responses are `{ success, message, data }`. Errors are `{ success: false, message }`; validation errors add
+`errors: [{ field, message }]` (422); rule conflicts add a machine-readable `code` (and sometimes `details`) (409/422),
+for example `CAPACITY_EXCEEDED`, `SLOT_EXISTS`, `SLOT_IN_USE`, `NO_SLOTS`, `INVALID_TRANSITION`, `PC_LABEL_EXISTS`.
+
+## Manual testing
+
+* PowerShell: `powershell -ExecutionPolicy Bypass -File .\scripts\phase3b-smoke.ps1 -AdminEmail you@example.com`
+  (asks for the password; ~45 checks against the running server; creates objects named "SMOKE ...").
+* Postman: import `scripts/ExamPro-Phase3B.postman_collection.json`, set `adminEmail` / `adminPassword`, run folder 0 then 1-4.
+
+## Known limitations
+
+* Rate-limit counters are in memory (per server process).
+* Examinations cannot be deleted yet (no endpoint); a draft can simply be left unused.
+* Student-facing endpoints (browse exams, centers, slots, register) are Phase 3C.
+* MySQL older than 8.0.16 ignores CHECK constraints; the services validate the same rules either way.

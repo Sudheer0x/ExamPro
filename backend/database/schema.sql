@@ -93,12 +93,16 @@ CREATE TABLE examinations (
     registration_start_date DATETIME        NOT NULL,
     registration_end_date   DATETIME        NOT NULL,
     exam_duration_minutes   INT UNSIGNED    NOT NULL,
+    fee                     DECIMAL(10,2)   NOT NULL DEFAULT 0.00,   -- Phase 3B (migration 002); 0.00 = free
     instructions            TEXT            NULL,
     status                  ENUM('draft', 'registration_open', 'registration_closed', 'scheduled', 'completed')
                             NOT NULL DEFAULT 'draft',
     created_at              TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at              TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_examinations_status (status)
+    INDEX idx_examinations_status (status),
+    CONSTRAINT chk_exam_window   CHECK (registration_end_date > registration_start_date),   -- Phase 3B
+    CONSTRAINT chk_exam_duration CHECK (exam_duration_minutes > 0),
+    CONSTRAINT chk_exam_fee      CHECK (fee >= 0)
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------------
@@ -148,7 +152,8 @@ CREATE TABLE exam_centers (
     max_capacity        INT UNSIGNED    NOT NULL DEFAULT 0,
     is_active           TINYINT(1)      NOT NULL DEFAULT 1,
     created_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_centers_city (city)
+    INDEX idx_centers_city (city),
+    CONSTRAINT chk_center_counts CHECK (available_computers <= max_capacity)   -- Phase 3B
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------------
@@ -178,7 +183,10 @@ CREATE TABLE exam_slots (
     created_at          TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_slot_examination FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE CASCADE,
     CONSTRAINT fk_slot_center FOREIGN KEY (center_id) REFERENCES exam_centers(id) ON DELETE CASCADE,
-    INDEX idx_slots_date (exam_date)
+    INDEX idx_slots_date (exam_date),
+    UNIQUE KEY uq_slot_exam_center_start (examination_id, center_id, exam_date, slot_start_time),   -- Phase 3B
+    CONSTRAINT chk_slot_times    CHECK (slot_start_time < slot_end_time),
+    CONSTRAINT chk_slot_capacity CHECK (capacity > 0)
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------------

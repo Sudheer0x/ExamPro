@@ -38,17 +38,19 @@ const path = require('path');
 const src = (...p) => path.join(__dirname, '..', '..', 'src', ...p);
 
 // ---------- in-memory "database" + fake clock (seconds) ----------
-const db = { students: [], users: [], otps: [], refreshTokens: [] };
+const db = {
+  students: [], users: [], otps: [], refreshTokens: [],
+  // Phase 3B (exam setup)
+  examinations: [], centers: [], computers: [], slots: [], registrations: [], allocations: [], computerAllocations: [],
+};
 const clock = { t: 0 };
 const outbox = []; // captured OTP e-mails: { to, otp }
 let ids = { student: 0, user: 0, otp: 0, rt: 0 };
 
 function resetDb() {
-  db.students.length = 0;
-  db.users.length = 0;
-  db.otps.length = 0;
-  db.refreshTokens.length = 0;
+  for (const key of Object.keys(db)) db[key] = [];
   outbox.length = 0;
+  adminFakes.reset();
   clock.t = 0;
   ids = { student: 0, user: 0, otp: 0, rt: 0 };
 }
@@ -178,6 +180,10 @@ const fakeEmailService = {
   async sendOtpEmail(to, otp) { outbox.push({ to, otp }); },
 };
 
+// Phase 3B fakes (examinations, centers, computers, slots, clock, transaction)
+const { makeAdminFakes } = require('./adminFakes');
+const adminFakes = makeAdminFakes(db, clock);
+
 // ---------- install the fakes (after a drift check against the real modules) ----------
 function installFakes() {
   const models = {
@@ -185,6 +191,7 @@ function installFakes() {
     'models/studentModel.js': fakeStudentModel,
     'models/otpModel.js': fakeOtpModel,
     'models/refreshTokenModel.js': fakeRefreshTokenModel,
+    ...adminFakes.models,
   };
 
   // Drift guard: the fake must expose exactly the functions the real model exports.
@@ -277,8 +284,11 @@ function signToken(payload, { secret = config.jwt.secret, options = {} } = {}) {
   return jwt.sign(payload, secret, { algorithm: 'HS256', issuer: config.jwt.issuer, audience: config.jwt.audience, ...options });
 }
 
+/** The fake "now" in business time, 'YYYY-MM-DD HH:MM:SS' (starts at 2026-10-06 10:00:00; moves with advance()). */
+const fakeNow = () => adminFakes.nowString();
+
 module.exports = {
-  config, db, outbox, advance, resetDb,
+  config, db, outbox, advance, resetDb, fakeNow,
   start, stop, request, refreshCookieOf, REFRESH_COOKIE,
   seedStaff, seedStudent, loginAs, signToken,
 };

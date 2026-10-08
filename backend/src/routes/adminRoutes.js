@@ -12,4 +12,9 @@ router.use(authenticate, authorizeRoles('ADMIN'));
 router.get('/users', v.listUsersRules, v.handleValidation, c.listUsers);
 router.get('/users/:id', v.idParamRules, v.handleValidation, c.getUser);
 
+// Phase 3B — exam setup. Mounted after the guard above, so they inherit authenticate + ADMIN-only.
+router.use('/examinations', require('./adminExaminationRoutes'));
+router.use('/centers', require('./adminCenterRoutes'));
+router.use('/slots', require('./adminSlotRoutes'));
+
 module.exports = router;

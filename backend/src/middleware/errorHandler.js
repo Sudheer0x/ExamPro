@@ -13,6 +13,20 @@ function errorHandler(err, req, res, next) {
     return res.status(err.status).json({ success: false, message: err.message, ...err.extra });
   }
 
+  // Database rules that slipped past the service-level checks (e.g. two requests racing).
+  // The details are hidden; the client only learns which kind of conflict happened.
+  const dbConflicts = {
+    ER_DUP_ENTRY: [409, 'That record already exists.'],
+    ER_ROW_IS_REFERENCED_2: [409, 'This record is in use and cannot be removed.'],
+    ER_CHECK_CONSTRAINT_VIOLATED: [422, 'The data breaks a database rule.'],
+    ER_LOCK_DEADLOCK: [503, 'The server is busy. Please try again.'],
+    ER_LOCK_WAIT_TIMEOUT: [503, 'The server is busy. Please try again.'],
+  };
+  if (err.code && dbConflicts[err.code]) {
+    const [status, message] = dbConflicts[err.code];
+    return res.status(status).json({ success: false, message });
+  }
+
   // Malformed JSON body
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({ success: false, message: 'Malformed JSON in request body.' });

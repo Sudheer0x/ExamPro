@@ -1,0 +1,1010 @@
+{
+  "info": {
+    "name": "ExamPro - Phase 3B (exam setup)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Run '0. Login' first. Set adminEmail and adminPassword in the collection variables. Requests are meant to be run in order; later ones reuse ids saved by earlier ones."
+  },
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:5000/api"
+    },
+    {
+      "key": "adminEmail",
+      "value": ""
+    },
+    {
+      "key": "adminPassword",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "examId",
+      "value": ""
+    },
+    {
+      "key": "centerId",
+      "value": ""
+    },
+    {
+      "key": "pcId",
+      "value": ""
+    },
+    {
+      "key": "slotId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Login (run first)",
+      "item": [
+        {
+          "name": "Login as admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/auth/login",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('login ok', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('token', pm.response.json().data.accessToken);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1. Examinations",
+      "item": [
+        {
+          "name": "Create examination",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/examinations",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "examinations"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"exam_name\": \"ExamPro CBT 2026\",\n  \"description\": \"Computer-based test\",\n  \"instructions\": \"Carry your hall ticket and a photo ID.\",\n  \"registration_start_date\": \"2026-10-01 09:00:00\",\n  \"registration_end_date\": \"2026-11-30 23:59:59\",\n  \"exam_duration_minutes\": 180,\n  \"fee\": 500\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "pm.collectionVariables.set('examId', pm.response.json().data.examination.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List examinations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/admin/examinations?page=1&limit=20",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "examinations?page=1&limit=20"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get examination",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/admin/examinations/{{examId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "examinations",
+                "{{examId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Edit examination",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/examinations/{{examId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "examinations",
+                "{{examId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated description\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Change status: open registration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/examinations/{{examId}}/status",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "examinations",
+                "{{examId}}",
+                "status"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"registration_open\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Change status: close registration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/examinations/{{examId}}/status",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "examinations",
+                "{{examId}}",
+                "status"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"registration_closed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Centers",
+      "item": [
+        {
+          "name": "Create center",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/centers",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"center_name\": \"ExamPro Centre - Vijayawada\",\n  \"address\": \"MG Road\",\n  \"city\": \"Vijayawada\",\n  \"state\": \"Andhra Pradesh\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "pm.collectionVariables.set('centerId', pm.response.json().data.center.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List centers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/admin/centers?page=1&limit=20",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers?page=1&limit=20"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get center",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/admin/centers/{{centerId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers",
+                "{{centerId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Edit center",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/centers/{{centerId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers",
+                "{{centerId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"address\": \"Updated address\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Deactivate center",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/centers/{{centerId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers",
+                "{{centerId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Reactivate center",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/centers/{{centerId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers",
+                "{{centerId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete center (only if unused)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/admin/centers/{{centerId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers",
+                "{{centerId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Computers",
+      "item": [
+        {
+          "name": "Bulk-create 60 PCs",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/centers/{{centerId}}/computers",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers",
+                "{{centerId}}",
+                "computers"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"count\": 60,\n  \"prefix\": \"PC-\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List PCs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/admin/centers/{{centerId}}/computers?page=1&limit=50",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers",
+                "{{centerId}}",
+                "computers?page=1&limit=50"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('pcId', (pm.response.json().data.computers[0] || {}).id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Put a PC in maintenance",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/centers/{{centerId}}/computers/{{pcId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers",
+                "{{centerId}}",
+                "computers",
+                "{{pcId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"maintenance\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Put the PC back in service",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/centers/{{centerId}}/computers/{{pcId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers",
+                "{{centerId}}",
+                "computers",
+                "{{pcId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"available\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete a PC (only if unused)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/admin/centers/{{centerId}}/computers/{{pcId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "centers",
+                "{{centerId}}",
+                "computers",
+                "{{pcId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Slots",
+      "item": [
+        {
+          "name": "Create slot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/examinations/{{examId}}/slots",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "examinations",
+                "{{examId}}",
+                "slots"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"center_id\": {{centerId}},\n  \"exam_date\": \"2026-12-14\",\n  \"slot_start_time\": \"09:00\",\n  \"slot_end_time\": \"12:30\",\n  \"capacity\": 40\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "pm.collectionVariables.set('slotId', pm.response.json().data.slot.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create overlapping slot (should fit only 20 more)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/examinations/{{examId}}/slots",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "examinations",
+                "{{examId}}",
+                "slots"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"center_id\": {{centerId}},\n  \"exam_date\": \"2026-12-14\",\n  \"slot_start_time\": \"11:00\",\n  \"slot_end_time\": \"14:30\",\n  \"capacity\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List slots of an examination",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/admin/examinations/{{examId}}/slots",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "examinations",
+                "{{examId}}",
+                "slots"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Change slot capacity",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base}}/admin/slots/{{slotId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "slots",
+                "{{slotId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacity\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete slot (only if unused)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/admin/slots/{{slotId}}",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "admin",
+                "slots",
+                "{{slotId}}"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

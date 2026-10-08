@@ -8,14 +8,14 @@
 const rateLimit = require('express-rate-limit');
 const config = require('../config/env');
 
-function make({ windowMinutes, max, message, keyGenerator, skipSuccessfulRequests = false }) {
+function make({ windowMinutes, max, message, keyGenerator, skipSuccessfulRequests = false, skipWhen }) {
   return rateLimit({
     windowMs: windowMinutes * 60 * 1000,
     max,
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests,
-    skip: () => config.rateLimitDisabled,
+    skip: (req) => config.rateLimitDisabled || (skipWhen ? skipWhen(req) : false),
     ...(keyGenerator ? { keyGenerator } : {}),
     handler: (req, res) => res.status(429).json({ success: false, message }),
   });
@@ -42,4 +42,19 @@ module.exports = {
   verifyOtpEmailLimiter: make({ windowMinutes: 15, max: 10, message: 'Too many verification attempts for this email. Try again later.', keyGenerator: byEmail('otp-verify') }),
 
   refreshLimiter: make({ windowMinutes: 15, max: 60, message: TOO_MANY }),
+
+  // Phase 3B — admin setup. Counted per logged-in admin (these run after `authenticate`); reads are free.
+  adminWriteLimiter: make({
+    windowMinutes: 1,
+    max: 120,
+    message: 'Too many changes in a short time. Please slow down.',
+    keyGenerator: (req) => `admin-write:${req.user ? req.user.id : req.ip}`,
+    skipWhen: (req) => req.method === 'GET',
+  }),
+  bulkComputersLimiter: make({
+    windowMinutes: 1,
+    max: 10,
+    message: 'Too many bulk PC requests. Please wait a minute.',
+    keyGenerator: (req) => `admin-bulk-pc:${req.user ? req.user.id : req.ip}`,
+  }),
 };

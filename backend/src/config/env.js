@@ -59,6 +59,12 @@ const config = {
     timeZone: process.env.DB_TIME_ZONE || '+05:30',
   },
 
+  // Phase 3B: guard rails for bulk PC creation.
+  limits: {
+    maxPcsPerCenter: num(process.env.MAX_PCS_PER_CENTER, 1000),
+    maxPcsPerRequest: num(process.env.MAX_PCS_PER_REQUEST, 500),
+  },
+
   cors: {
     origins: (process.env.CORS_ORIGINS || 'http://localhost:5000,http://localhost:3000,http://127.0.0.1:5000')
       .split(',')
