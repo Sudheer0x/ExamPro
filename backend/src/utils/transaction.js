@@ -11,9 +11,18 @@ const { pool } = require('../config/database');
 
 const MAX_ATTEMPTS = 3;
 
-async function runOnce(fn) {
+const ISOLATION_LEVELS = new Set(['READ COMMITTED', 'REPEATABLE READ', 'SERIALIZABLE']);
+
+async function runOnce(fn, options) {
   const conn = await pool.getConnection();
   try {
+    // Optional, for THIS transaction only (MySQL's default, REPEATABLE READ, applies otherwise).
+    // Registration uses READ COMMITTED so every statement sees the latest committed data once the
+    // slot row is locked. The level comes from a fixed list, never from user input.
+    if (options && options.isolationLevel) {
+      if (!ISOLATION_LEVELS.has(options.isolationLevel)) throw new Error(`Unsupported isolation level: ${options.isolationLevel}`);
+      await conn.query(`SET TRANSACTION ISOLATION LEVEL ${options.isolationLevel}`);
+    }
     await conn.beginTransaction();
     const result = await fn(conn);
     await conn.commit();
@@ -30,10 +39,10 @@ async function runOnce(fn) {
   }
 }
 
-async function withTransaction(fn) {
+async function withTransaction(fn, options) {
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await runOnce(fn);
+      return await runOnce(fn, options);
     } catch (err) {
       if (err && err.code === 'ER_LOCK_DEADLOCK' && attempt < MAX_ATTEMPTS) continue;
       throw err;

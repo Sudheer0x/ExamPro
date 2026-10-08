@@ -43,6 +43,20 @@ module.exports = {
 
   refreshLimiter: make({ windowMinutes: 15, max: 60, message: TOO_MANY }),
 
+  // Phase 3C — student registration. Keyed by the logged-in student (these run after authenticate).
+  registrationCreateLimiter: make({
+    windowMinutes: 10,
+    max: 10,
+    message: 'Too many registration attempts. Please wait a few minutes and try again.',
+    keyGenerator: (req) => `reg-create:${req.user ? req.user.id : req.ip}`,
+  }),
+  registrationCancelLimiter: make({
+    windowMinutes: 10,
+    max: 20,
+    message: 'Too many cancellation attempts. Please wait a few minutes and try again.',
+    keyGenerator: (req) => `reg-cancel:${req.user ? req.user.id : req.ip}`,
+  }),
+
   // Phase 3B — admin setup. Counted per logged-in admin (these run after `authenticate`); reads are free.
   adminWriteLimiter: make({
     windowMinutes: 1,

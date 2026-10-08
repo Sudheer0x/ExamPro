@@ -115,8 +115,11 @@ CREATE TABLE registrations (
     registration_id     VARCHAR(30)     NOT NULL UNIQUE,   -- e.g. EXP20260001
     application_id      VARCHAR(30)     NOT NULL UNIQUE,
     status              ENUM('pending_payment', 'completed', 'cancelled') NOT NULL DEFAULT 'pending_payment',
+    -- Phase 3C (migration 003): 1 while the registration is active, NULL once cancelled.
+    active_flag         TINYINT         GENERATED ALWAYS AS (IF(status = 'cancelled', NULL, 1)) VIRTUAL,
     registered_at       TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_student_examination (student_id, examination_id),
+    -- At most ONE active registration per student and exam (cancelled rows are history and may repeat).
+    UNIQUE KEY uq_student_exam_active (student_id, examination_id, active_flag),
     CONSTRAINT fk_reg_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
     CONSTRAINT fk_reg_examination FOREIGN KEY (examination_id) REFERENCES examinations(id) ON DELETE RESTRICT,
     INDEX idx_registrations_status (status)

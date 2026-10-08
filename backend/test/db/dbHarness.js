@@ -64,7 +64,7 @@ async function setupDatabase() {
 }
 
 const TABLES_TO_CLEAR = [
-  'computer_allocations', 'candidate_allocations', 'registrations', 'exam_slots',
+  'payments', 'computer_allocations', 'candidate_allocations', 'registrations', 'exam_slots',
   'computers', 'exam_centers', 'examinations', 'students',
 ];
 

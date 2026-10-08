@@ -42,6 +42,8 @@ const db = {
   students: [], users: [], otps: [], refreshTokens: [],
   // Phase 3B (exam setup)
   examinations: [], centers: [], computers: [], slots: [], registrations: [], allocations: [], computerAllocations: [],
+  // Phase 3C (student registration)
+  payments: [],
 };
 const clock = { t: 0 };
 const outbox = []; // captured OTP e-mails: { to, otp }
@@ -51,6 +53,7 @@ function resetDb() {
   for (const key of Object.keys(db)) db[key] = [];
   outbox.length = 0;
   adminFakes.reset();
+  studentFakes.reset();
   clock.t = 0;
   ids = { student: 0, user: 0, otp: 0, rt: 0 };
 }
@@ -184,6 +187,10 @@ const fakeEmailService = {
 const { makeAdminFakes } = require('./adminFakes');
 const adminFakes = makeAdminFakes(db, clock);
 
+// Phase 3C fakes (student catalog + registration)
+const { makeStudentFakes } = require('./studentFakes');
+const studentFakes = makeStudentFakes(db);
+
 // ---------- install the fakes (after a drift check against the real modules) ----------
 function installFakes() {
   const models = {
@@ -192,6 +199,7 @@ function installFakes() {
     'models/otpModel.js': fakeOtpModel,
     'models/refreshTokenModel.js': fakeRefreshTokenModel,
     ...adminFakes.models,
+    ...studentFakes.models,
   };
 
   // Drift guard: the fake must expose exactly the functions the real model exports.

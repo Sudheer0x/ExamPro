@@ -67,9 +67,9 @@ describe('Phase 3B against a real database', () => {
   after(() => db.closePool());
 
   describe('migrations and constraints', () => {
-    it('records 001 and 002 as applied, and a second run changes nothing', async () => {
+    it('records every migration as applied, and a second run changes nothing', async () => {
       const rows = await sql('SELECT filename FROM schema_migrations ORDER BY id');
-      assert.deepEqual(rows.map((r) => r.filename), ['001_phase2_auth.sql', '002_phase3b_exam_setup.sql']);
+      assert.deepEqual(rows.map((r) => r.filename), ['001_phase2_auth.sql', '002_phase3b_exam_setup.sql', '003_phase3c_registration_rules.sql']);
       const conn = await db.openConnection();
       try {
         const again = await runMigrations(conn, { log: () => {} });
