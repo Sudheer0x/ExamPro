@@ -1,0 +1,109 @@
+/* ExamPro theme — Bootstrap 5 plus a few brand touches. */
+:root {
+  --exampro-blue: #1f3a93;
+  --exampro-blue-dark: #16296a;
+  --exampro-accent: #2f6fed;
+  --bs-primary: var(--exampro-accent);
+  --bs-primary-rgb: 47, 111, 237;
+  --bs-link-color: var(--exampro-accent);
+  --bs-link-hover-color: var(--exampro-blue);
+}
+
+body {
+  background: #f5f7fb;
+  color: #1f2937;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--exampro-accent);
+  --bs-btn-border-color: var(--exampro-accent);
+  --bs-btn-hover-bg: var(--exampro-blue);
+  --bs-btn-hover-border-color: var(--exampro-blue);
+  --bs-btn-active-bg: var(--exampro-blue-dark);
+  --bs-btn-active-border-color: var(--exampro-blue-dark);
+}
+
+.exampro-navbar {
+  background: linear-gradient(90deg, var(--exampro-blue-dark), var(--exampro-blue));
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--exampro-blue);
+  font-weight: 800;
+}
+
+.hero {
+  background: radial-gradient(circle at 80% 20%, #3b82f6 0, transparent 40%), linear-gradient(135deg, var(--exampro-blue-dark), var(--exampro-blue));
+}
+
+.exampro-footer {
+  background: var(--exampro-blue-dark);
+  color: #fff;
+}
+
+.feature-card,
+.exam-card,
+.stat-card {
+  border: 0;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.feature-card:hover,
+.exam-card:hover,
+.stat-card:hover {
+  box-shadow: 0 6px 16px rgba(16, 24, 40, 0.12);
+  transform: translateY(-1px);
+}
+
+.exam-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.otp-input {
+  letter-spacing: 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.wizard-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem 0.25rem 0.25rem;
+  border-radius: 999px;
+  background: #e9eef8;
+  color: #51607a;
+  font-size: 0.9rem;
+}
+.wizard-step .wizard-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: #c5d0e6;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.wizard-step.current {
+  background: var(--exampro-accent);
+  color: #fff;
+}
+.wizard-step.current .wizard-number {
+  background: #fff;
+  color: var(--exampro-accent);
+}
+.wizard-step.done .wizard-number {
+  background: #198754;
+  color: #fff;
+}
